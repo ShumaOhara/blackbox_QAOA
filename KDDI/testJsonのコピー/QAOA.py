@@ -238,35 +238,41 @@ tts20 = time_to_solution(tau20, feasibleRate20, 0.99)
 tts20_999 = time_to_solution(tau20, feasibleRate20, 0.999)
 tts20_9999 = time_to_solution(tau20, feasibleRate20, 0.9999)
 
-# 以下、測定結果
-print('Optimize Time(1):  ', opt_time1)
-print('Optimize Time(15):  ', opt_time15)
-print('Optimize Time(5):  ', opt_time5)
-print('Optimize Time(10): ', opt_time10)
-print('Optimize Time(20): ', opt_time20)
-print()
-print('Time to Solution(1):  ', tts1)
-print('Time to Solution(15):  ', tts15)
-print('Time to Solution(5):  ', tts5)
-print('Time to Solution(10): ', tts10)
-print('Time to Solution(20): ', tts20)
-print('Time to Solution(20.9): ', tts20_999)
-print('Time to Solution(20.99): ', tts20_9999)
-print()
-print('Fesible Solution Rate(1):  ', feasibleRate1)
-print('Fesible Solution Rate(15):  ', feasibleRate15)
-print('Fesible Solution Rate(5):  ', feasibleRate5)
-print('Fesible Solution Rate(10): ', feasibleRate10)
-print('Fesible Solution Rate(20): ', feasibleRate20)
-print()
-print('Optimized Parameters(1):  ', res1.x)
-print('Optimized Parameters(15):  ', res15.x)
-print('Optimized Parameters(5):  ', res5.x)
-print('Optimized Parameters(10): ', res10.x)
-print('Optimized Parameters(20): ', res20.x)
-print()
-print('Average Objective Function(1):  ', res1.fun)
-print('Average Objective Function(15):  ', res15.fun)
-print('Average Objective Function(5):  ', res5.fun)
-print('Average Objective Function(10): ', res10.fun)
-print('Average Objective Function(20): ', res20.fun)
+# 以下、測定結果# 出力結果を保存するためのテキスト
+output_text = f"""
+Optimize Time(1):  {opt_time1}
+Optimize Time(15):  {opt_time15}
+Optimize Time(5):  {opt_time5}
+Optimize Time(10): {opt_time10}
+Optimize Time(20): {opt_time20}
+
+Time to Solution(1):  {tts1}
+Time to Solution(15):  {tts15}
+Time to Solution(5):  {tts5}
+Time to Solution(10): {tts10}
+Time to Solution(20): {tts20}
+Time to Solution(20.9): {tts20_999}
+Time to Solution(20.99): {tts20_9999}
+
+Feasible Solution Rate(1):  {feasibleRate1}
+Feasible Solution Rate(15):  {feasibleRate15}
+Feasible Solution Rate(5):  {feasibleRate5}
+Feasible Solution Rate(10): {feasibleRate10}
+Feasible Solution Rate(20): {feasibleRate20}
+
+Optimized Parameters(1):  {res1.x}
+Optimized Parameters(15):  {res15.x}
+Optimized Parameters(5):  {res5.x}
+Optimized Parameters(10): {res10.x}
+Optimized Parameters(20): {res20.x}
+
+Average Objective Function(1):  {res1.fun}
+Average Objective Function(15):  {res15.fun}
+Average Objective Function(5):  {res5.fun}
+Average Objective Function(10): {res10.fun}
+Average Objective Function(20): {res20.fun}
+"""
+
+# ファイルに書き込む
+with open('output_results.txt', 'w') as file:
+    file.write(output_text)
