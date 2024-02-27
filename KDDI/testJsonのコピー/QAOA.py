@@ -3,12 +3,11 @@ import os
 import scipy.optimize
 from qiskit import QuantumCircuit, Aer
 from qiskit.circuit import Parameter
-from qiskit.visualization import plot_histogram
 from scipy.optimize import minimize
 import time
 import math
 import numpy as np
-import matplotlib.pyplot as plt
+
 def ImportImputJSON(fileName):
     columns_path = os.path.join('json', fileName, 'columns.json')
     table_path = os.path.join('json', fileName, 'Table.json')
