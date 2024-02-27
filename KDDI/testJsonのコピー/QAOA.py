@@ -9,8 +9,6 @@ import time
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-
-# JSONファイルをインプットする
 def ImportImputJSON(fileName):
     columns_path = os.path.join('json', fileName, 'columns.json')
     table_path = os.path.join('json', fileName, 'Table.json')
@@ -27,7 +25,6 @@ def ImportImputJSON(fileName):
 
     return columns, Table
 
-# 目的関数を得る
 def blackbox_obj(solution, columns, Gce):
     solution_array = list(map(int, solution))
     obj = 0
@@ -37,6 +34,7 @@ def blackbox_obj(solution, columns, Gce):
         for j in range(len(columns)*2):
             note += (Gce[i][j] * solution_array[j])
         obj += ((note-1)**2)
+    
     return obj
 
 def time_to_solution(tau, feasibleRate, targetProbability):
@@ -46,7 +44,6 @@ def time_to_solution(tau, feasibleRate, targetProbability):
         time = tau * math.ceil(math.log(1-targetProbability)/math.log(1-feasibleRate))
     return time
 
-# あるビット列bit_stringの目的関数の値を入手し、shot分まわすことで期待値を求める
 def compute_expectation(counts, columns, Gce):
     avg = 0
     sum_count = 0
@@ -56,7 +53,6 @@ def compute_expectation(counts, columns, Gce):
         sum_count += count
     return avg/sum_count
 
-# 量子回路の作成
 def create_qaoa_circ(columns, Gce, theta):
     nqubits = len(Gce[0])
     n_layers = len(theta)//2
@@ -76,28 +72,25 @@ def create_qaoa_circ(columns, Gce, theta):
     qc.measure_all()
     return qc
 
-# 期待値を得る(shotsの回数のデフォルトは1024回)
 def get_expectation(columns, Gce, shots):
     backend = Aer.get_backend('qasm_simulator')
     backend.shots = shots
     
     def execute_circ(theta):
         qc = create_qaoa_circ(columns, Gce, theta)
-        counts = backend.run(qc, seed_simulator=10, nshots=1024).result().get_counts()
+        counts = backend.run(qc, seed_simulator=10, nshots=512).result().get_counts()
         return compute_expectation(counts, columns, Gce)
     
     return execute_circ
 
-# 目的関数が0になった回数を調べることによってFeasibleSolutionRateを求める
 def get_violation_count(counts, columns, Gce):
-    sum_count = 0
-    for bit_string, count in counts.items():
-        obj = blackbox_obj(bit_string, columns, Gce)
-        if obj == 0:
-            sum_count += count
-    return sum_count
+    violation_count = 0
+    for items, values in counts.items():
+        obj = blackbox_obj(items, columns, Gce)
+        if obj > 0:
+            violation_count += values
+    return violation_count
 
-# JSONファイルをインポートして、columnをつくる(columnsは使わない)
 columns, Gce = ImportImputJSON('ChengRW100')
 column = []
 for i, row in enumerate(Gce):
@@ -108,139 +101,173 @@ for i, row in enumerate(Gce):
 backend = Aer.get_backend('aer_simulator')
 backend.shots = 1024
 
-# アングルを決めるまで1回のみの場合
-maximum_iteration = 1
-op_opt_time = time.time()
-expectation = get_expectation(column, Gce, 1024)
-res1 = scipy.optimize.minimize(expectation,
-               [1.0, 1.0],
-               method='COBYLA',
-               options={'maxiter':maximum_iteration})
-ed_opt_time = time.time()
-opt_time1 = ed_opt_time - op_opt_time
+feasibleRate1 = 0
+feasibleRate5 = 0
+feasibleRate10 = 0
+feasibleRate15 = 0
+feasibleRate20 = 0
 
-op_time = time.time()
-qc_res = create_qaoa_circ(column, Gce, res1.x)
-counts = backend.run(qc_res, seed_simulator=10, shots=1024).result().get_counts()
-ed_time = time.time()
-tau = (ed_time-op_time)/backend.shots
+tau1 = 0
+tau5 = 0
+tau10 = 0
+tau15 = 0
+tau20 = 0
 
-feasibleRate1 = 1-get_violation_count(counts, column, Gce)/backend.shots
+opt_time1 = 0
+opt_time5 = 0
+opt_time10 = 0
+opt_time15 = 0
+opt_time20 = 0
 
-tts1 = time_to_solution(tau, feasibleRate1, 0.99)
+for i in range(1000):
+    maximum_iteration = 1
+    op_opt_time = time.time()
+    expectation = get_expectation(column, Gce, 1024)
+    res1 = scipy.optimize.minimize(expectation,
+                [1.0, 1.0],
+                method='COBYLA',
+                options={'maxiter':maximum_iteration})
+    ed_opt_time = time.time()
+    opt_time1 += ed_opt_time - op_opt_time
 
-# アングルを決めるまで3回の場合
-maximum_iteration = 3
-op_opt_time = time.time()
-expectation = get_expectation(column, Gce, 1024)
-res3 = scipy.optimize.minimize(expectation,
-               [1.0, 1.0],
-               method='COBYLA',
-               options={'maxiter':maximum_iteration})
-ed_opt_time = time.time()
-opt_time3 = ed_opt_time - op_opt_time
+    op_time = time.time()
+    qc_res1 = create_qaoa_circ(column, Gce, res1.x)
+    counts = backend.run(qc_res1, seed_simulator=10, shots=1024).result().get_counts()
+    ed_time = time.time()
+    tau1 += (ed_time-op_time)/backend.shots
 
-op_time = time.time()
-qc_res = create_qaoa_circ(column, Gce, res3.x)
-counts = backend.run(qc_res, seed_simulator=10, shots=1024).result().get_counts()
-ed_time = time.time()
-tau = (ed_time-op_time)/backend.shots
+    feasibleRate1 += 1-get_violation_count(counts, column, Gce)/backend.shots
 
-feasibleRate3 = 1-get_violation_count(counts, column, Gce)/backend.shots
+    maximum_iteration = 5
+    op_opt_time = time.time()
+    expectation = get_expectation(column, Gce, 1024)
+    res5 = scipy.optimize.minimize(expectation,
+                [1.0, 1.0],
+                method='COBYLA',
+                options={'maxiter':maximum_iteration})
+    ed_opt_time = time.time()
+    opt_time5 += ed_opt_time - op_opt_time
 
-tts3 = time_to_solution(tau, feasibleRate3, 0.99)
+    op_time = time.time()
+    qc_res5 = create_qaoa_circ(column, Gce, res5.x)
+    counts = backend.run(qc_res5, seed_simulator=10, shots=1024).result().get_counts()
+    ed_time = time.time()
+    tau5 += (ed_time-op_time)/backend.shots
 
-# アングルを決めるまで5回の場合
-maximum_iteration = 5
-op_opt_time = time.time()
-expectation = get_expectation(column, Gce, 1024)
-res5 = scipy.optimize.minimize(expectation,
-               [1.0, 1.0],
-               method='COBYLA',
-               options={'maxiter':maximum_iteration})
-ed_opt_time = time.time()
-opt_time5 = ed_opt_time - op_opt_time
+    feasibleRate5 += 1-get_violation_count(counts, column, Gce)/backend.shots
 
-op_time = time.time()
-qc_res = create_qaoa_circ(column, Gce, res5.x)
-counts = backend.run(qc_res, seed_simulator=10, shots=1024).result().get_counts()
-ed_time = time.time()
-tau = (ed_time-op_time)/backend.shots
+    maximum_iteration = 15
+    op_opt_time = time.time()
+    expectation = get_expectation(column, Gce, 1024)
+    res15 = scipy.optimize.minimize(expectation,
+                [1.0, 1.0],
+                method='COBYLA',
+                options={'maxiter':maximum_iteration})
+    ed_opt_time = time.time()
+    opt_time15 += ed_opt_time - op_opt_time
 
-feasibleRate5 = 1-get_violation_count(counts, column, Gce)/backend.shots
+    op_time = time.time()
+    qc_res15 = create_qaoa_circ(column, Gce, res15.x)
+    counts = backend.run(qc_res15, seed_simulator=10, shots=1024).result().get_counts()
+    ed_time = time.time()
+    tau15 += (ed_time-op_time)/backend.shots
 
-tts5 = time_to_solution(tau, feasibleRate5, 0.99)
+    feasibleRate15 += 1-get_violation_count(counts, column, Gce)/backend.shots
 
-# アングルを決めるまで10回の場合
-maximum_iteration = 10
-op_opt_time = time.time()
-expectation = get_expectation(column, Gce, 1024)
-res10 = scipy.optimize.minimize(expectation,
-               [1.0, 1.0],
-               method='COBYLA',
-               options={'maxiter':maximum_iteration})
-ed_opt_time = time.time()
-opt_time10 = ed_opt_time - op_opt_time
+    maximum_iteration = 10
+    op_opt_time = time.time()
+    expectation = get_expectation(column, Gce, 1024)
+    res10 = scipy.optimize.minimize(expectation,
+                [1.0, 1.0],
+                method='COBYLA',
+                options={'maxiter':maximum_iteration})
+    ed_opt_time = time.time()
+    opt_time10 += ed_opt_time - op_opt_time
 
-op_time = time.time()
-qc_res = create_qaoa_circ(column, Gce, res10.x)
-counts = backend.run(qc_res, seed_simulator=10, shots=1024).result().get_counts()
-ed_time = time.time()
-tau = (ed_time-op_time)/backend.shots
+    op_time = time.time()
+    qc_res10 = create_qaoa_circ(column, Gce, res10.x)
+    counts = backend.run(qc_res10, seed_simulator=10, shots=1024).result().get_counts()
+    ed_time = time.time()
+    tau10 += (ed_time-op_time)/backend.shots
 
-feasibleRate10 = 1-get_violation_count(counts, column, Gce)/backend.shots
-
-tts10 = time_to_solution(tau, feasibleRate10, 0.99)
-
-# アングルを決めるまで20回の場合(＝制限ない場合)
-maximum_iteration = 20
-op_opt_time = time.time()
-expectation = get_expectation(column, Gce, 1024)
-res20 = scipy.optimize.minimize(expectation,
-               [1.0, 1.0],
-               method='COBYLA',
-               options={'maxiter':maximum_iteration})
-ed_opt_time = time.time()
-opt_time20 = ed_opt_time - op_opt_time
-
-op_time = time.time()
-qc_res = create_qaoa_circ(column, Gce, res20.x)
-counts = backend.run(qc_res, seed_simulator=10, shots=1024).result().get_counts()
-ed_time = time.time()
-tau = (ed_time-op_time)/backend.shots
-
-feasibleRate20 = 1-get_violation_count(counts, column, Gce)/backend.shots
+    feasibleRate10 += 1-get_violation_count(counts, column, Gce)/backend.shots
 
 
-tts20 = time_to_solution(tau, feasibleRate20, 0.99)
+    # アングルを決めるまで20回の場合(＝制限ない場合)
+    maximum_iteration = 20
+    op_opt_time = time.time()
+    expectation = get_expectation(column, Gce, 1024)
+    res20 = scipy.optimize.minimize(expectation,
+                [1.0, 1.0],
+                method='COBYLA',
+                options={'maxiter':maximum_iteration})
+    ed_opt_time = time.time()
+    opt_time20 += ed_opt_time - op_opt_time
+
+    op_time = time.time()
+    qc_res20 = create_qaoa_circ(column, Gce, res20.x)
+    counts = backend.run(qc_res20, seed_simulator=10, shots=1024).result().get_counts()
+    ed_time = time.time()
+    tau20 += (ed_time-op_time)/backend.shots
+
+    feasibleRate20 += 1-get_violation_count(counts, column, Gce)/backend.shots
+
+
+feasibleRate1 = feasibleRate1/1000
+feasibleRate15 = feasibleRate15/1000
+feasibleRate5 = feasibleRate5/1000
+feasibleRate10 = feasibleRate10/1000
+feasibleRate20 = feasibleRate20/1000
+
+tau1 = tau1/1000
+tau15 = tau15/1000
+tau5 = tau5/1000
+tau10 = tau10/1000
+tau20 = tau20/1000
+
+opt_time1 = opt_time1/1000
+opt_time15 = opt_time15/1000
+opt_time5 = opt_time5/1000
+opt_time10 = opt_time10/1000
+opt_time20 = opt_time20/1000
+
+tts1 = time_to_solution(tau1, feasibleRate1, 0.99)
+tts15 = time_to_solution(tau15, feasibleRate15, 0.99)
+tts5 = time_to_solution(tau5, feasibleRate5, 0.99)
+tts10 = time_to_solution(tau10, feasibleRate10, 0.99)
+tts20 = time_to_solution(tau20, feasibleRate20, 0.99)
+tts20_999 = time_to_solution(tau20, feasibleRate20, 0.999)
+tts20_9999 = time_to_solution(tau20, feasibleRate20, 0.9999)
 
 # 以下、測定結果
 print('Optimize Time(1):  ', opt_time1)
-print('Optimize Time(3):  ', opt_time3)
+print('Optimize Time(15):  ', opt_time15)
 print('Optimize Time(5):  ', opt_time5)
 print('Optimize Time(10): ', opt_time10)
 print('Optimize Time(20): ', opt_time20)
 print()
 print('Time to Solution(1):  ', tts1)
-print('Time to Solution(3):  ', tts3)
+print('Time to Solution(15):  ', tts15)
 print('Time to Solution(5):  ', tts5)
 print('Time to Solution(10): ', tts10)
 print('Time to Solution(20): ', tts20)
+print('Time to Solution(20.9): ', tts20_999)
+print('Time to Solution(20.99): ', tts20_9999)
 print()
 print('Fesible Solution Rate(1):  ', feasibleRate1)
-print('Fesible Solution Rate(3):  ', feasibleRate3)
+print('Fesible Solution Rate(15):  ', feasibleRate15)
 print('Fesible Solution Rate(5):  ', feasibleRate5)
 print('Fesible Solution Rate(10): ', feasibleRate10)
 print('Fesible Solution Rate(20): ', feasibleRate20)
 print()
 print('Optimized Parameters(1):  ', res1.x)
-print('Optimized Parameters(3):  ', res3.x)
+print('Optimized Parameters(15):  ', res15.x)
 print('Optimized Parameters(5):  ', res5.x)
 print('Optimized Parameters(10): ', res10.x)
 print('Optimized Parameters(20): ', res20.x)
 print()
 print('Average Objective Function(1):  ', res1.fun)
-print('Average Objective Function(3):  ', res3.fun)
+print('Average Objective Function(15):  ', res15.fun)
 print('Average Objective Function(5):  ', res5.fun)
 print('Average Objective Function(10): ', res10.fun)
 print('Average Objective Function(20): ', res20.fun)
