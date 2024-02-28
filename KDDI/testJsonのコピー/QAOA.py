@@ -97,7 +97,7 @@ for i, row in enumerate(Gce):
     if len(indices) == 2:
         column.append((indices[0], indices[1]))
 
-backend = Aer.get_backend('aer_simulator')
+backend = Aer.get_backend('qasm_simulator')
 backend.shots = 1024
 
 feasibleRate1 = 0
@@ -118,7 +118,9 @@ opt_time10 = 0
 opt_time15 = 0
 opt_time20 = 0
 
-for i in range(1000):
+ITERATION = 100
+
+for i in range(ITERATION):
     maximum_iteration = 1
     op_opt_time = time.time()
     expectation = get_expectation(column, Gce, 1024)
@@ -213,23 +215,24 @@ for i in range(1000):
 
     print(i)
 
-feasibleRate1 = feasibleRate1/1000
-feasibleRate5 = feasibleRate5/1000
-feasibleRate10 = feasibleRate10/1000
-feasibleRate15 = feasibleRate15/1000
-feasibleRate20 = feasibleRate20/1000
 
-tau1 = tau1/1000
-tau5 = tau5/1000
-tau10 = tau10/1000
-tau15 = tau15/1000
-tau20 = tau20/1000
+feasibleRate1 = feasibleRate1/ITERATION
+feasibleRate5 = feasibleRate5/ITERATION
+feasibleRate10 = feasibleRate10/ITERATION
+feasibleRate15 = feasibleRate15/ITERATION
+feasibleRate20 = feasibleRate20/ITERATION
 
-opt_time1 = opt_time1/1000
-opt_time5 = opt_time5/1000
-opt_time10 = opt_time10/1000
-opt_time15 = opt_time15/1000
-opt_time20 = opt_time20/1000
+tau1 = tau1/ITERATION
+tau5 = tau5/ITERATION
+tau10 = tau10/ITERATION
+tau15 = tau15/ITERATION
+tau20 = tau20/ITERATION
+
+opt_time1 = opt_time1/ITERATION
+opt_time5 = opt_time5/ITERATION
+opt_time10 = opt_time10/ITERATION
+opt_time15 = opt_time15/ITERATION
+opt_time20 = opt_time20/ITERATION
 
 tts1 = time_to_solution(tau1, feasibleRate1, 0.99)
 tts5 = time_to_solution(tau5, feasibleRate5, 0.99)
