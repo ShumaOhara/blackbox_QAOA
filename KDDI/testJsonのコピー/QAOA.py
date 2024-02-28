@@ -211,6 +211,7 @@ for i in range(1000):
 
     feasibleRate20 += 1-get_violation_count(counts, column, Gce)/backend.shots
 
+    print()
 
 feasibleRate1 = feasibleRate1/1000
 feasibleRate5 = feasibleRate5/1000
