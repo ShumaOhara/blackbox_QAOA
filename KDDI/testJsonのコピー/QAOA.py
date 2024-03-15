@@ -90,7 +90,7 @@ def get_violation_count(counts, columns, Gce):
             violation_count += values
     return violation_count
 
-columns, Gce = ImportImputJSON('ChengRW100')
+columns, Gce = ImportImputJSON('ChengRW200')
 column = []
 for i, row in enumerate(Gce):
     indices = [idx for idx, val in enumerate(row) if val == 1]
